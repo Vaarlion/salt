@@ -501,6 +501,7 @@ class Pillar:
         pillar_override=None,
         pillarenv=None,
         extra_minion_data=None,
+        client=None,
     ):
         self.minion_id = minion_id
         self.ext = ext
@@ -510,7 +511,10 @@ class Pillar:
         # use the local file client
         self.opts = self.__gen_opts(opts, grains, saltenv=saltenv, pillarenv=pillarenv)
         self.saltenv = saltenv
-        self.client = salt.fileclient.get_file_client(self.opts, True)
+        if client is None:
+            self.client = salt.fileclient.get_file_client(self.opts, True)
+        else:
+            self.client = client
         self.avail = self.__gather_avail()
 
         if opts.get("file_client", "") == "local" and not opts.get(
@@ -639,8 +643,9 @@ class Pillar:
         Pull the file server environments out of the master options
         """
         envs = {"base"}
-        if "pillar_roots" in self.opts:
-            envs.update(list(self.opts["pillar_roots"]))
+        envs.update(self.client.envs())
+        if self.opts.get("__git_pillar", False) and self.opts["pillarenv"]:
+            envs.update([self.opts["pillarenv"]])
         return envs
 
     def get_tops(self):
@@ -657,12 +662,12 @@ class Pillar:
             if self.opts["pillarenv"]:
                 # If the specified pillarenv is not present in the available
                 # pillar environments, do not cache the pillar top file.
-                if self.opts["pillarenv"] not in self.opts["pillar_roots"]:
+                if self.opts["pillarenv"] not in self._get_envs():
                     log.debug(
                         "pillarenv '%s' not found in the configured pillar "
                         "environments (%s)",
                         self.opts["pillarenv"],
-                        ", ".join(self.opts["pillar_roots"]),
+                        ", ".join(self._get_envs()),
                     )
                 else:
                     saltenvs.add(self.opts["pillarenv"])
@@ -860,7 +865,7 @@ class Pillar:
                     "Specified SLS '{}' in environment '{}' was not "
                     "found. ".format(sls, saltenv)
                 )
-                if self.opts.get("__git_pillar", False) is True:
+                if self.opts.get("__git_pillar", False):
                     msg += (
                         "This is likely caused by a git_pillar top file "
                         "containing an environment other than the one for the "
@@ -875,7 +880,8 @@ class Pillar:
                         "could also be due to environment '{1}' not being "
                         "defined in 'pillar_roots'.".format(sls, saltenv)
                     )
-                log.debug(msg)
+                log.error(msg)
+                errors.append(msg)
                 # return state, mods, errors
                 return None, mods, errors
         state = None

@@ -45,6 +45,9 @@ class MockFileclient:
     def list_states(*args, **kwargs):
         raise NotImplementedError()
 
+    def envs(self):
+        return ["base"]
+
     # pylint: enable=unused-argument,no-method-argument,method-hidden
 
 
