@@ -384,6 +384,9 @@ def render_jinja_tmpl(tmplstr, context, tmplpath=None):
     newline = False
     file_client = context.get("fileclient", None)
 
+    file_client = None
+    if "file_client" in context:
+        file_client = context["file_client"]
     if tmplstr and not isinstance(tmplstr, str):
         # https://jinja.palletsprojects.com/en/2.11.x/api/#unicode
         tmplstr = tmplstr.decode(SLS_ENCODING)
