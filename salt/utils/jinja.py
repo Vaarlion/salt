@@ -115,15 +115,18 @@ class SaltCacheLoader(BaseLoader):
         """
         saltpath = salt.utils.url.create(template)
         ret_path = self.file_client().get_file(saltpath, "", True, self.saltenv)
-        # remove 'template' string in returned full path and add cache directory into searchpath
-        m = ret_path.find(template, 0, len(ret_path))
-        if m >= 0:
-            _rpath = ret_path[:m]
-            if _rpath not in self.searchpath:
-                self.searchpath.append(_rpath)
-            log.debug(
-                "SaltCacheLoader::cache_file Added directory %s into searchpath", _rpath
-            )
+        # Only continue if the file is from salt
+        if ret_path is not False:
+            # remove 'template' string in returned full path and add cache directory into searchpath
+            m = ret_path.find(template, 0, len(ret_path))
+            if m >= 0:
+                _rpath = ret_path[:m]
+                if _rpath not in self.searchpath:
+                    self.searchpath.append(_rpath)
+                log.debug(
+                    "SaltCacheLoader::cache_file Added directory %s into searchpath",
+                    _rpath,
+                )
 
     def check_cache(self, template):
         """
